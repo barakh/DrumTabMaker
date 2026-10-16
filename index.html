@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Drum Tab Maker</title>
+<style>
+  :root { --bg:#0f1115; --panel:#1a1d24; --border:#2a2f3a; --text:#e6e9ef; --muted:#8b93a7; --accent:#4f8cff; --cell:#232733; --cellHit:#4f8cff; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background:var(--bg); color:var(--text); }
+  .wrap { max-width: 1000px; margin:0 auto; padding:16px; }
+  h1 { margin:0 0 12px; font-size:20px; }
+  .top { background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:12px; }
+  textarea { width:100%; height:160px; background:#0b0d12; color:#cfe3ff; border:1px solid var(--border); border-radius:6px; padding:10px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:14px; resize:vertical; }
+  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:8px; }
+  button { background:var(--accent); color:#fff; border:none; border-radius:6px; padding:8px 12px; cursor:pointer; font-size:14px; }
+  button.secondary { background:var(--cell); color:var(--text); border:1px solid var(--border); }
+  label { color:var(--muted); font-size:14px; }
+  select { background:var(--cell); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:6px 8px; }
+  .mid { margin-top:16px; background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:12px 0; overflow-x:auto; }
+  .instr-row { display:flex; align-items:center; gap:6px; margin:6px 0; }
+  .instr-label { width:30px; text-align:right; color:var(--muted); font-size:13px; font-family:ui-monospace,monospace; }
+  .cells { display:flex; gap:6px; flex:1 1 auto; min-width:0; width:100%; }
+  .bar-group { display:flex; gap:2px; flex:1 1 0; min-width:0; }
+  .bar-group .cell:nth-child(4n) { margin-right: 6px; }
+  .cell { flex:1 1 0; min-width:14px; height:28px; background:var(--cell); border:1px solid var(--border); border-radius:4px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-family:ui-monospace,monospace; font-size:12px; user-select:none; padding:0; }
+  .cell.hit { background:var(--cellHit); color:#fff; }
+  .hint { color:var(--muted); font-size:12px; margin-top:8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Drum Tab Maker</h1>
+  <div class="top">
+    <textarea id="tabText" readonly></textarea>
+    <div class="row">
+      <button id="copyBtn">Copy tab</button>
+      <label for="bars">Bars</label>
+      <select id="bars">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="8">8</option>
+      </select>
+      <label for="view">View</label>
+      <select id="view">
+        <option value="large">Large</option>
+        <option value="medium">Medium</option>
+        <option value="small">Small</option>
+      </select>
+      <label for="preset">Preset</label>
+      <select id="preset">
+        <option value="rock">Basic Rock</option>
+        <option value="disco">Disco</option>
+        <option value="hiphop">Hip-Hop</option>
+        <option value="halftime">Half-Time</option>
+        <option value="metal">Metal</option>
+      </select>
+      <button id="loadPresetBtn" class="secondary">Load</button>
+      <button id="resetBtn" class="secondary">Reset</button>
+      <span id="copyStatus" style="color:#8b93a7;font-size:13px;"></span>
+    </div>
+  </div>
+  <div class="mid" id="grid"></div>
+  <p class="hint">Click a cell to toggle a hit. Top area is the tab text.</p>
+</div>
+<script>
+const instruments = [
+  { id:'crash', name:'C', char:'x' },
+  { id:'ride',  name:'R', char:'x' },
+  { id:'hh',    name:'H', char:'x' },
+  { id:'snare', name:'S', char:'o' },
+  { id:'tom',   name:'T', char:'o' },
+  { id:'floor', name:'F', char:'o' },
+  { id:'kick',  name:'B', char:'o' },
+];
+
+const SLOTS = 16;
+
+const presets = {
+  rock: {
+    kick:  [1,0,0,0, 0,0,0,0, 1,0,0,0, 0,0,0,0],
+    snare: [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0],
+    hh:    [1,0,1,0, 1,0,1,0, 1,0,1,0, 1,0,1,0],
+  },
+  disco: {
+    kick:  [1,0,0,0, 1,0,0,0, 1,0,0,0, 1,0,0,0],
+    snare: [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0],
+    hh:    [1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1],
+  },
+  hiphop: {
+    kick:  [1,0,0,1, 0,0,1,0, 1,0,0,0, 0,0,1,0],
+    snare: [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0],
+    hh:    [1,0,1,0, 1,0,1,0, 1,0,1,0, 1,0,1,0],
+  },
+  halftime: {
+    kick:  [1,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0],
+    snare: [0,0,0,0, 0,0,0,0, 1,0,0,0, 0,0,0,0],
+    hh:    [1,0,1,0, 1,0,1,0, 1,0,1,0, 1,0,1,0],
+  },
+  metal: {
+    kick:  [1,0,1,0, 1,0,1,0, 1,0,1,0, 1,0,1,0],
+    snare: [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0],
+    hh:    [1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1],
+    crash: [1,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0],
+  },
+};
+
+function loadPreset(name) {
+  const p = presets[name];
+  if (!p) return;
+  initGrid(1, false);
+  document.getElementById('bars').value = '1';
+  Object.keys(p).forEach(id => {
+    if (!grid[id]) return;
+    for (let i=0;i<SLOTS;i++) grid[id][i] = !!p[id][i];
+  });
+  renderGrid();
+  updateText();
+}
+let bars = 1;
+let grid = {}; // id -> bool[]
+
+function initGrid(newBars, preserve) {
+  const oldBars = bars;
+  const oldGrid = grid;
+  bars = newBars;
+  const size = bars * SLOTS;
+  grid = {};
+  instruments.forEach(inst => {
+    const arr = new Array(size).fill(false);
+    if (preserve && oldGrid[inst.id]) {
+      const n = Math.min(oldGrid[inst.id].length, size);
+      for (let i=0;i<n;i++) arr[i] = oldGrid[inst.id][i];
+    }
+    grid[inst.id] = arr;
+  });
+}
+
+function renderGrid() {
+  const container = document.getElementById('grid');
+  container.innerHTML = '';
+  instruments.forEach(inst => {
+    const row = document.createElement('div');
+    row.className = 'instr-row';
+    const label = document.createElement('div');
+    label.className = 'instr-label';
+    label.textContent = inst.name;
+    row.appendChild(label);
+    const cells = document.createElement('div');
+    cells.className = 'cells';
+    const arr = grid[inst.id];
+    for (let b=0;b<bars;b++){
+      const group = document.createElement('div');
+      group.className = 'bar-group';
+      for (let s=0;s<SLOTS;s++){
+        const idx = b*SLOTS + s;
+        const cell = document.createElement('div');
+        cell.className = 'cell' + (arr[idx] ? ' hit' : '');
+        cell.textContent = arr[idx] ? inst.char : '-';
+        cell.dataset.inst = inst.id;
+        cell.dataset.idx = idx;
+        cell.addEventListener('click', onCellClick);
+        group.appendChild(cell);
+      }
+      cells.appendChild(group);
+    }
+    row.appendChild(cells);
+    container.appendChild(row);
+  });
+}
+
+function onCellClick(e) {
+  const instId = e.currentTarget.dataset.inst;
+  const idx = parseInt(e.currentTarget.dataset.idx, 10);
+  grid[instId][idx] = !grid[instId][idx];
+  renderGrid();
+  updateText();
+}
+
+let view = 'large';
+
+const priority = ['S','T','F','C','B','R','H'];
+
+function makeLines(groups) {
+  const labelWidth = Math.max(...groups.map(g=>g.name.length));
+  return groups.map(g => {
+    const gInsts = g.ids.map(id => instruments.find(i=>i.id===id));
+    let body = '';
+    for (let b=0;b<bars;b++){
+      let chunk = '';
+      for (let s=0;s<SLOTS;s++){
+        const idx = b*SLOTS + s;
+        const hits = gInsts.filter(inst => grid[inst.id][idx]);
+        if (hits.length === 0) {
+          chunk += '-';
+        } else if (hits.length === 1) {
+          chunk += hits[0].name;
+        } else {
+          // choose highest priority letter
+          let chosen = hits[0];
+          for (const h of hits) {
+            if (priority.indexOf(h.name) < priority.indexOf(chosen.name)) chosen = h;
+          }
+          chunk += chosen.name;
+        }
+      }
+      body += chunk + '|';
+    }
+    const label = (g.name + ':').padEnd(labelWidth+2);
+    return label + ' ' + body;
+  }).join('\n') + '\n';
+}
+
+function buildTab() {
+  if (view === 'large') {
+    const labelWidth = Math.max(...instruments.map(i=>i.name.length));
+    const lines = instruments.map(inst => {
+      let body = '';
+      for (let b=0;b<bars;b++){
+        let chunk = '';
+        for (let s=0;s<SLOTS;s++){
+          chunk += grid[inst.id][b*SLOTS+s] ? inst.char : '-';
+        }
+        body += chunk + '|';
+      }
+      const label = (inst.name + ':').padEnd(labelWidth+2);
+      return label + ' ' + body;
+    });
+    return lines.join('\n') + '\n';
+  }
+  if (view === 'medium') {
+    const groups = [
+      { name:'Cym', ids:['crash','ride','hh'] },
+      { name:'Drm', ids:['snare','tom','floor'] },
+      { name:'Kick', ids:['kick'] },
+    ];
+    return makeLines(groups);
+  }
+  // small
+  const groups = [
+    { name:'All', ids: instruments.map(i=>i.id) },
+  ];
+  return makeLines(groups);
+}
+
+function updateText() {
+  document.getElementById('tabText').value = buildTab();
+}
+
+document.getElementById('bars').addEventListener('change', e => {
+  initGrid(parseInt(e.target.value,10), true);
+  renderGrid();
+  updateText();
+});
+
+document.getElementById('view').addEventListener('change', e => {
+  view = e.target.value;
+  updateText();
+});
+
+document.getElementById('loadPresetBtn').addEventListener('click', () => {
+  loadPreset(document.getElementById('preset').value);
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  initGrid(parseInt(document.getElementById('bars').value,10), false);
+  renderGrid();
+  updateText();
+});
+
+document.getElementById('copyBtn').addEventListener('click', async () => {
+  const txt = document.getElementById('tabText').value;
+  const status = document.getElementById('copyStatus');
+  try {
+    await navigator.clipboard.writeText(txt);
+    status.textContent = 'Copied!';
+  } catch {
+    const ta = document.getElementById('tabText');
+    ta.select();
+    document.execCommand('copy');
+    status.textContent = 'Copied!';
+  }
+  setTimeout(()=>status.textContent='',1500);
+});
+
+// init
+initGrid(1, false);
+document.getElementById('bars').value = '1';
+renderGrid();
+updateText();
+</script>
+</body>
+</html>
