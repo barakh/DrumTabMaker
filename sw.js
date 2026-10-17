@@ -1,6 +1,6 @@
 /* Service worker for Drum Tab Maker.
    Bump VERSION whenever the cached assets change. */
-const VERSION = 'v1';
+const VERSION = 'v2';
 const CACHE = `drumtab-${VERSION}`;
 
 const CORE = [
@@ -11,6 +11,8 @@ const CORE = [
   './icons/icon-512.png',
   './icons/icon-maskable-512.png',
   './icons/apple-touch-icon.png',
+  './LICENSE',
+  './TERMS.md',
 ];
 
 self.addEventListener('install', (event) => {

@@ -34,6 +34,8 @@
   .cell { flex:1 1 0; min-width:14px; height:28px; background:var(--cell); border:1px solid var(--border); border-radius:4px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-family:ui-monospace,monospace; font-size:12px; user-select:none; padding:0; }
   .cell.hit { background:var(--cellHit); color:#fff; }
   .hint { color:var(--muted); font-size:12px; margin-top:8px; }
+  .hint a { color:var(--accent); }
+  .hint .sep { margin:0 6px; opacity:.6; }
 </style>
 </head>
 <body>
@@ -72,7 +74,9 @@
     </div>
   </div>
   <div class="mid" id="grid"></div>
-  <p class="hint">Click a cell to toggle a hit. Top area is the tab text.</p>
+  <p class="hint">Click a cell to toggle a hit. Top area is the tab text.
+    <span class="sep">·</span><a href="LICENSE">MIT License</a>
+    <span class="sep">·</span><a href="TERMS.md">Terms of Service</a></p>
 </div>
 <script>
 const instruments = [
