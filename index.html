@@ -4,6 +4,14 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Drum Tab Maker</title>
+<link rel="manifest" href="manifest.webmanifest" />
+<meta name="theme-color" content="#0f1115" />
+<meta name="description" content="Build drum patterns on a step grid and copy them as ASCII drum tabs." />
+<link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png" />
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Drum Tab" />
 <style>
   :root { --bg:#0f1115; --panel:#1a1d24; --border:#2a2f3a; --text:#e6e9ef; --muted:#8b93a7; --accent:#4f8cff; --cell:#232733; --cellHit:#4f8cff; }
   * { box-sizing:border-box; }
@@ -59,6 +67,7 @@
       </select>
       <button id="loadPresetBtn" class="secondary">Load</button>
       <button id="resetBtn" class="secondary">Reset</button>
+      <button id="installBtn" class="secondary" hidden>Install app</button>
       <span id="copyStatus" style="color:#8b93a7;font-size:13px;"></span>
     </div>
   </div>
@@ -294,6 +303,38 @@ initGrid(1, false);
 document.getElementById('bars').value = '1';
 renderGrid();
 updateText();
+
+// PWA: install prompt
+let deferredPrompt = null;
+const installBtn = document.getElementById('installBtn');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  installBtn.hidden = false;
+});
+
+installBtn.addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  installBtn.hidden = true;
+});
+
+window.addEventListener('appinstalled', () => {
+  installBtn.hidden = true;
+  deferredPrompt = null;
+});
+
+// PWA: offline support
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch((err) => {
+      console.warn('Service worker registration failed:', err);
+    });
+  });
+}
 </script>
 </body>
 </html>
