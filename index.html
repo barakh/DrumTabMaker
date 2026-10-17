@@ -184,8 +184,10 @@ let view = 'large';
 const priority = ['S','T','F','C','B','R','H'];
 
 function makeLines(groups) {
-  const labelWidth = Math.max(...groups.map(g=>g.name.length));
-  return groups.map(g => {
+  const visible = groups.filter(g => g.ids.some(id => grid[id].some(Boolean)));
+  if (visible.length === 0) return '';
+  const labelWidth = Math.max(...visible.map(g=>g.name.length));
+  return visible.map(g => {
     const gInsts = g.ids.map(id => instruments.find(i=>i.id===id));
     let body = '';
     for (let b=0;b<bars;b++){
@@ -215,8 +217,10 @@ function makeLines(groups) {
 
 function buildTab() {
   if (view === 'large') {
-    const labelWidth = Math.max(...instruments.map(i=>i.name.length));
-    const lines = instruments.map(inst => {
+    const visible = instruments.filter(inst => grid[inst.id].some(Boolean));
+    if (visible.length === 0) return '';
+    const labelWidth = Math.max(...visible.map(i=>i.name.length));
+    const lines = visible.map(inst => {
       let body = '';
       for (let b=0;b<bars;b++){
         let chunk = '';
