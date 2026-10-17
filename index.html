@@ -206,7 +206,7 @@ function makeLines(groups) {
           chunk += chosen.name;
         }
       }
-      body += chunk + '|';
+      body += '|' + chunk + '|';
     }
     const label = (g.name + ':').padEnd(labelWidth+2);
     return label + ' ' + body;
@@ -223,7 +223,7 @@ function buildTab() {
         for (let s=0;s<SLOTS;s++){
           chunk += grid[inst.id][b*SLOTS+s] ? inst.char : '-';
         }
-        body += chunk + '|';
+        body += '|' + chunk + '|';
       }
       const label = (inst.name + ':').padEnd(labelWidth+2);
       return label + ' ' + body;
