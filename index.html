@@ -25,9 +25,11 @@
   button.secondary { background:var(--cell); color:var(--text); border:1px solid var(--border); }
   label { color:var(--muted); font-size:14px; }
   select { background:var(--cell); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:6px 8px; }
-  .mid { margin-top:16px; background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:12px 0; overflow-x:auto; }
+  .mid { margin-top:16px; display:flex; flex-direction:column; gap:10px; overflow-x:auto; }
+  .bar-card { background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:12px; }
+  .bar-card-title { color:var(--muted); font-size:12px; letter-spacing:.08em; text-transform:uppercase; padding:0 0 8px; }
   .instr-row { display:flex; align-items:center; gap:6px; margin:6px 0; }
-  .instr-label { width:30px; text-align:right; color:var(--muted); font-size:13px; font-family:ui-monospace,monospace; }
+  .instr-label { width:30px; text-align:right; color:var(--muted); font-size:13px; font-family:ui-monospace,monospace; line-height:28px; }
   .cells { display:flex; gap:6px; flex:1 1 auto; min-width:0; width:100%; }
   .bar-group { display:flex; gap:2px; flex:1 1 0; min-width:0; }
   .bar-group .cell:nth-child(4n) { margin-right: 6px; }
@@ -123,11 +125,12 @@ const presets = {
 function loadPreset(name) {
   const p = presets[name];
   if (!p) return;
-  initGrid(1, false);
-  document.getElementById('bars').value = '1';
+  initGrid(bars, false);
   Object.keys(p).forEach(id => {
     if (!grid[id]) return;
-    for (let i=0;i<SLOTS;i++) grid[id][i] = !!p[id][i];
+    for (let b=0;b<bars;b++){
+      for (let i=0;i<SLOTS;i++) grid[id][b*SLOTS+i] = !!p[id][i];
+    }
   });
   renderGrid();
   updateText();
@@ -154,19 +157,27 @@ function initGrid(newBars, preserve) {
 function renderGrid() {
   const container = document.getElementById('grid');
   container.innerHTML = '';
-  instruments.forEach(inst => {
-    const row = document.createElement('div');
-    row.className = 'instr-row';
-    const label = document.createElement('div');
-    label.className = 'instr-label';
-    label.textContent = inst.name;
-    row.appendChild(label);
-    const cells = document.createElement('div');
-    cells.className = 'cells';
-    const arr = grid[inst.id];
-    for (let b=0;b<bars;b++){
+  for (let b=0;b<bars;b++){
+    const card = document.createElement('div');
+    card.className = 'bar-card';
+    if (bars > 1) {
+      const title = document.createElement('div');
+      title.className = 'bar-card-title';
+      title.textContent = 'Bar ' + (b+1);
+      card.appendChild(title);
+    }
+    instruments.forEach(inst => {
+      const row = document.createElement('div');
+      row.className = 'instr-row';
+      const label = document.createElement('div');
+      label.className = 'instr-label';
+      label.textContent = inst.name;
+      row.appendChild(label);
+      const cells = document.createElement('div');
+      cells.className = 'cells';
       const group = document.createElement('div');
       group.className = 'bar-group';
+      const arr = grid[inst.id];
       for (let s=0;s<SLOTS;s++){
         const idx = b*SLOTS + s;
         const cell = document.createElement('div');
@@ -178,10 +189,11 @@ function renderGrid() {
         group.appendChild(cell);
       }
       cells.appendChild(group);
-    }
-    row.appendChild(cells);
-    container.appendChild(row);
-  });
+      row.appendChild(cells);
+      card.appendChild(row);
+    });
+    container.appendChild(card);
+  }
 }
 
 function onCellClick(e) {
