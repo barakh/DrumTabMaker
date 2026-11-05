@@ -318,11 +318,9 @@ document.getElementById('copyBtn').addEventListener('click', async () => {
   setTimeout(()=>status.textContent='',1500);
 });
 
-// init
-initGrid(1, false);
+// init: start with the basic rock pattern
 document.getElementById('bars').value = '1';
-renderGrid();
-updateText();
+loadPreset('rock');
 
 // PWA: install prompt
 let deferredPrompt = null;
