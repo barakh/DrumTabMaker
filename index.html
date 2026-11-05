@@ -149,6 +149,12 @@ function initGrid(newBars, preserve) {
     if (preserve && oldGrid[inst.id]) {
       const n = Math.min(oldGrid[inst.id].length, size);
       for (let i=0;i<n;i++) arr[i] = oldGrid[inst.id][i];
+      // repeat the first bar's pattern into newly added bars
+      if (newBars > oldBars && oldGrid[inst.id].length >= SLOTS) {
+        for (let b=oldBars;b<newBars;b++){
+          for (let s=0;s<SLOTS;s++) arr[b*SLOTS+s] = oldGrid[inst.id][s];
+        }
+      }
     }
     grid[inst.id] = arr;
   });
